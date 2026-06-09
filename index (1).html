@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablero Ejecutivo · Descuentos a Flotilla · IES Internacional</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+<!--
+╔══════════════════════════════════════════════════════════════════════╗
+║  TABLERO EJECUTIVO — DESCUENTOS A FLOTILLA                         ║
+║  Coordinación de Activos Fijos y Control Vehicular                 ║
+║  Versión GitHub Pages · Actualizable por período                   ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  CÓMO AGREGAR UN NUEVO PERÍODO:                                    ║
+║  1. Busca el bloque "▸▸ AGREGAR NUEVO PERÍODO AQUÍ" en el JS.     ║
+║  2. Copia el bloque de ejemplo y pega los nuevos registros.        ║
+║  3. Agrega el botón correspondiente en el <div id="segPer">.       ║
+║  4. Registra el nuevo período en PERIODOS_META.                    ║
+║  5. Sube el archivo a GitHub Pages (main branch / index.html).     ║
+╚══════════════════════════════════════════════════════════════════════╝
+-->
+
+<style>
+:root{
+  --bg:#0c1322;--bg2:#111c30;--panel:#16243c;--panel2:#1b2c47;--line:#26395a;
+  --txt:#e8eef7;--muted:#8aa0c2;--gold:#f5b942;--gold-dim:#caa04f;
+  --teal:#3fc1b0;--red:#ef6b6b;--blue:#5b9cf0;--violet:#9b8cff;
+  --amber:#f59e0b;--amber-dim:#b27a12;--amber-bg:rgba(245,158,11,.10);
+  --shadow:0 18px 40px -18px rgba(0,0,0,.65);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',sans-serif;background:radial-gradient(1200px 600px at 85% -10%,rgba(245,185,66,.10),transparent 60%),radial-gradient(900px 500px at 0% 110%,rgba(63,193,176,.10),transparent 55%),var(--bg);color:var(--txt);min-height:100vh;padding:28px clamp(14px,3vw,44px) 60px}
+.mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:'Sora',sans-serif}
+
+/* HEADER */
+header{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:24px}
+.brand{display:flex;align-items:center;gap:16px}
+.logo{width:52px;height:52px;border-radius:13px;flex:none;background:linear-gradient(145deg,var(--gold),#b9802b);display:grid;place-items:center;color:#1a130a;font-weight:800;font-size:22px;font-family:'Sora';box-shadow:0 8px 22px -8px rgba(245,185,66,.6)}
+.brand h1{font-size:clamp(17px,2.3vw,24px);font-weight:700;letter-spacing:-.5px;line-height:1.2}
+.brand .sub{color:var(--muted);font-size:12px;margin-top:4px}
+.brand .sub b{color:var(--gold-dim)}
+.last-update{font-size:11px;color:var(--muted);text-align:right;line-height:1.5}
+.last-update span{color:var(--teal);font-weight:600}
+
+/* FILTER BAR */
+.filterbar{display:flex;flex-wrap:wrap;gap:20px;margin-bottom:22px;align-items:flex-end}
+.fgroup{display:flex;flex-direction:column;gap:7px}
+.fgroup .lbl{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted)}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:4px;gap:3px;flex-wrap:wrap}
+.seg button{font-family:'Sora';font-weight:600;font-size:12.5px;color:var(--muted);background:transparent;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;transition:.18s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button:hover{color:var(--txt)}
+.seg button.on{color:#1a130a}
+.seg.s-per button.on{background:linear-gradient(160deg,var(--gold),#cc902f);box-shadow:0 6px 14px -8px rgba(245,185,66,.7)}
+.seg.s-con button.on{background:linear-gradient(160deg,var(--blue),#3f74c4);color:#0a1326;box-shadow:0 6px 14px -8px rgba(91,156,240,.7)}
+.ddot{width:8px;height:8px;border-radius:50%}
+
+/* HERO */
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:20px;padding:28px 32px;margin-bottom:20px;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(520px 280px at 100% 0%,rgba(245,185,66,.18),transparent 60%),repeating-linear-gradient(115deg,rgba(255,255,255,.018) 0 2px,transparent 2px 26px);pointer-events:none}
+.h-left{position:relative;z-index:1}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;font-size:10.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:12px}
+.hero-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(245,185,66,.18)}
+.hero-big{font-family:'Sora';font-weight:800;font-size:clamp(38px,6.5vw,64px);line-height:.95;letter-spacing:-2px}
+.hero-big .cur{color:var(--gold-dim);font-size:.5em;vertical-align:top;margin-right:5px;font-weight:600}
+.hero-cap{color:var(--muted);font-size:13.5px;margin-top:10px;max-width:400px;line-height:1.55}
+.hero-cap b{color:var(--txt)}
+.h-right{position:relative;z-index:1;display:flex;gap:12px;flex-wrap:wrap}
+.minicard{background:rgba(8,14,26,.45);border:1px solid var(--line);border-radius:13px;padding:14px 16px;min-width:140px;transition:.25s}
+.minicard.active{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.mc-lbl{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.mc-val{font-family:'IBM Plex Mono';font-weight:700;font-size:21px;margin-top:6px}
+.minicard.personal .mc-val{color:var(--teal)} .minicard.dano .mc-val{color:var(--red)}
+.mc-pct{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* KPIS */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:13px;margin-bottom:20px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden}
+.kpi .bar{position:absolute;left:0;top:0;bottom:0;width:4px}
+.kpi.k1 .bar{background:var(--gold)} .kpi.k2 .bar{background:var(--teal)} .kpi.k3 .bar{background:var(--blue)} .kpi.k4 .bar{background:var(--violet)} .kpi.k5 .bar{background:var(--red)}
+.kl{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.kv{font-family:'IBM Plex Mono';font-weight:700;font-size:26px;margin-top:8px;letter-spacing:-.5px}
+.kx{font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ▸▸ ADEUDOS PANEL */
+.adeudos-panel{border:1px solid rgba(245,158,11,.4);border-radius:16px;background:linear-gradient(135deg,rgba(245,158,11,.08),var(--panel));box-shadow:0 0 0 1px rgba(245,158,11,.12),var(--shadow);margin-bottom:20px;overflow:hidden;transition:.3s}
+.adeudos-panel.clear{border-color:rgba(63,193,176,.3);background:linear-gradient(135deg,rgba(63,193,176,.05),var(--panel))}
+.adeudos-head{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;padding:16px 22px;cursor:pointer;user-select:none}
+.adeudos-title{display:flex;align-items:center;gap:12px;font-family:'Sora';font-weight:700;font-size:15px}
+.adeudos-icon{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:16px;flex:none}
+.adeudos-panel:not(.clear) .adeudos-icon{background:rgba(245,158,11,.18)}
+.adeudos-panel.clear .adeudos-icon{background:rgba(63,193,176,.15)}
+.adeudos-meta{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.a-badge{font-family:'IBM Plex Mono';font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px}
+.a-badge.warn{background:rgba(245,158,11,.18);color:var(--amber);border:1px solid rgba(245,158,11,.4)}
+.a-badge.ok{background:rgba(63,193,176,.14);color:var(--teal);border:1px solid rgba(63,193,176,.35)}
+.adeudos-chev{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;transition:.25s;color:var(--amber);font-size:12px}
+.adeudos-panel.open .adeudos-chev{transform:rotate(180deg)}
+.adeudos-panel.clear .adeudos-chev{color:var(--teal)}
+.adeudos-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.adeudos-panel.open .adeudos-body{max-height:1200px}
+.adeudos-inner{padding:0 22px 20px}
+.adeudos-stats{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.a-stat{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:130px}
+.a-stat .l{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.a-stat .v{font-family:'IBM Plex Mono';font-weight:700;font-size:18px;margin-top:5px}
+.a-stat.a .v{color:var(--amber)} .a-stat.p .v{color:var(--teal)} .a-stat.c .v{color:var(--red)}
+.atab-wrap{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.atab-wrap table{width:100%;border-collapse:collapse;font-size:13px}
+.atab-wrap thead th{background:var(--bg2);padding:11px 16px;font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+.atab-wrap tbody td{padding:11px 16px;border-bottom:1px solid rgba(38,57,90,.5);vertical-align:middle}
+.atab-wrap tbody tr:hover{background:rgba(245,158,11,.05)}
+.atab-wrap tbody tr:last-child td{border-bottom:none}
+.atab-wrap tfoot td{background:var(--bg2);padding:12px 16px;font-family:'IBM Plex Mono';font-weight:700;border-top:2px solid var(--amber)}
+.a-num{font-family:'IBM Plex Mono';font-weight:600;text-align:right;white-space:nowrap}
+.a-col{font-weight:600} .a-muted{color:#5d7197}
+.inst-pill{font-size:10.5px;font-weight:600;background:rgba(245,158,11,.14);color:var(--amber);border:1px solid rgba(245,158,11,.3);padding:2px 8px;border-radius:6px;white-space:nowrap}
+.obs-txt{font-size:11px;color:var(--muted);font-style:italic}
+.zbadge{font-size:10.5px;color:var(--muted);background:var(--bg2);border:1px solid var(--line);padding:2px 9px;border-radius:6px}
+.no-adeudo{padding:22px;text-align:center;color:var(--teal);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px}
+
+/* CHARTS */
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;margin-bottom:20px}
+@media(max-width:960px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow)}
+.card h3{font-size:14px;font-weight:600;display:flex;align-items:center;gap:9px;margin-bottom:3px}
+.card h3 .sq{width:9px;height:9px;border-radius:2.5px}
+.ch-sub{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+.chart{width:100%;height:300px}
+.chart.tall{height:350px}
+.click-hint{font-size:11px;color:var(--gold-dim);margin-top:6px;display:flex;align-items:center;gap:5px}
+.click-hint::before{content:"☞"}
+
+/* DRILL */
+.drill{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 22px;margin-bottom:20px;transition:.25s}
+.drill.armed{border-color:rgba(63,193,176,.5);box-shadow:0 0 0 1px rgba(63,193,176,.22),var(--shadow)}
+.drill .dh{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:6px}
+.drill-title{font-family:'Sora';font-weight:600;font-size:15px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.drill-chip{font-family:'IBM Plex Mono';font-size:12px;background:rgba(63,193,176,.14);color:var(--teal);border:1px solid rgba(63,193,176,.35);padding:3px 10px;border-radius:20px}
+.drill-hint{color:var(--muted);font-weight:400;font-size:12px}
+.close-btn{font-size:12px;color:var(--muted);background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;transition:.18s;font-family:'IBM Plex Sans'}
+.close-btn:hover{color:var(--txt);border-color:var(--gold)}
+.drill-empty{color:var(--muted);font-size:13px;padding:22px;text-align:center;border:1px dashed var(--line);border-radius:12px;line-height:1.6}
+.drill-stats{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px}
+.dstat{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:120px}
+.dstat .l{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.dstat .v{font-family:'IBM Plex Mono';font-weight:700;font-size:17px;margin-top:4px}
+.dstat.p .v{color:var(--teal)} .dstat.d .v{color:var(--red)} .dstat.t .v{color:var(--gold)} .dstat.c .v{color:var(--blue)}
+.dtab-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.dtable{width:100%;border-collapse:collapse;font-size:13px}
+.dtable thead th{background:var(--bg2);text-align:left;padding:10px 14px;font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap}
+.dtable thead th.r{text-align:right}
+.dtable tbody td{padding:10px 14px;border-bottom:1px solid rgba(38,57,90,.45)}
+.dtable tbody tr:hover{background:rgba(63,193,176,.07)}
+.dtable tfoot td{padding:11px 14px;font-family:'IBM Plex Mono';font-weight:700;background:var(--bg2);border-top:2px solid var(--teal)}
+.d-col{font-weight:600} .d-muted{color:#5d7197}
+.d-num{font-family:'IBM Plex Mono';font-weight:600;text-align:right;white-space:nowrap}
+.d-tot{color:var(--gold-dim);font-weight:700}
+.cell-p{color:var(--teal)} .cell-d{color:var(--red)}
+
+/* DETAIL TABLE */
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
+.detail-head{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:16px 22px;cursor:pointer;user-select:none;background:linear-gradient(180deg,var(--panel2),var(--panel));border-bottom:1px solid transparent;transition:.2s}
+.detail.open .detail-head{border-bottom-color:var(--line)}
+.dtitle{display:flex;align-items:center;gap:12px;font-family:'Sora';font-weight:600;font-size:15.5px}
+.chev{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;transition:.25s;color:var(--gold)}
+.detail.open .chev{transform:rotate(180deg);background:rgba(245,185,66,.12)}
+.d-pill{font-family:'IBM Plex Mono';font-size:11.5px;background:rgba(245,185,66,.12);color:var(--gold);border:1px solid rgba(245,185,66,.3);padding:3px 10px;border-radius:20px}
+.dtools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.dtools input,.dtools select{font-family:'IBM Plex Sans';font-size:13px;background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:8px 11px;outline:none}
+.dtools input{min-width:180px}
+.dtools input:focus,.dtools select:focus{border-color:var(--gold)}
+.dbody{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.detail.open .dbody{max-height:3600px;overflow:auto}
+.twrap{overflow-x:auto}
+.main-table{width:100%;border-collapse:collapse;font-size:13px}
+.main-table thead th{position:sticky;top:0;background:var(--bg2);text-align:left;padding:12px 16px;font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap}
+.main-table thead th:hover{color:var(--gold)}
+.main-table thead th .arr{opacity:.35;font-size:10px}
+.main-table tbody td{padding:11px 16px;border-bottom:1px solid rgba(38,57,90,.5)}
+.main-table tbody tr:hover{background:rgba(91,156,240,.07)}
+.tc{font-weight:600}.tm{font-family:'IBM Plex Mono';font-weight:600;text-align:right;white-space:nowrap}
+.tag-c{font-size:10px;font-weight:600;letter-spacing:.4px;padding:2px 7px;border-radius:6px;text-transform:uppercase}
+.tag-c.personal{background:rgba(63,193,176,.14);color:var(--teal)}
+.tag-c.dano{background:rgba(239,107,107,.14);color:var(--red)}
+.tag-c.adeudo{background:rgba(245,158,11,.14);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.uni-badge{font-size:11px;color:var(--muted);background:var(--bg2);border:1px solid var(--line);padding:2px 8px;border-radius:6px}
+.main-table tfoot td{padding:12px 16px;font-family:'IBM Plex Mono';font-weight:700;background:var(--bg2);border-top:2px solid var(--gold)}
+.empty{padding:36px;text-align:center;color:var(--muted)}
+.obs-cell{font-size:11px;color:var(--muted);font-style:italic;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+footer{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.3px;padding-top:10px}
+footer b{color:var(--gold-dim)}
+.fade{animation:fade .5s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.flash{animation:flash .65s ease}
+@keyframes flash{0%{background:rgba(63,193,176,.14)}100%{background:transparent}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">CV</div>
+    <div>
+      <h1>Descuentos a Flotilla — Tablero Ejecutivo</h1>
+      <div class="sub">Coordinación de <b>Activos Fijos y Control Vehicular</b> · IES Internacional</div>
+    </div>
+  </div>
+  <div class="last-update">Último período<br><span id="lastPer">—</span></div>
+</header>
+
+<!-- FILTROS -->
+<div class="filterbar">
+  <div class="fgroup">
+    <span class="lbl">Período de análisis</span>
+    <!--
+      ▸▸ AGREGAR NUEVO PERÍODO: añadir un <button data-p="CLAVE"> aquí
+         y el bloque de datos correspondiente en el array DATA del JS
+    -->
+    <div class="seg s-per" id="segPer">
+      <button data-p="abr">Abr 2026</button>
+      <button data-p="may">May 01–17</button>
+      <button data-p="jun" class="on">May18–Jun01</button>
+      <button data-p="todos">Consolidado</button>
+    </div>
+  </div>
+  <div class="fgroup">
+    <span class="lbl">Concepto</span>
+    <div class="seg s-con" id="segCon">
+      <button data-c="todos" class="on"><span class="ddot" style="background:var(--gold)"></span>Todos</button>
+      <button data-c="personal"><span class="ddot" style="background:var(--teal)"></span>Uso personal</button>
+      <button data-c="dano"><span class="ddot" style="background:var(--red)"></span>Daño a unidad</button>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero fade">
+  <div class="h-left">
+    <div class="hero-tag"><span class="dot"></span><span id="heroTag">Recaudación total de descuentos</span></div>
+    <div class="hero-big"><span class="cur">$</span><span id="heroVal" class="mono">0</span></div>
+    <div class="hero-cap" id="heroCap">Cargando…</div>
+  </div>
+  <div class="h-right">
+    <div class="minicard personal" id="cardPer">
+      <div class="mc-lbl">Uso personal</div>
+      <div class="mc-val mono">$<span id="mPer">0</span></div>
+      <div class="mc-pct" id="pPer">—</div>
+    </div>
+    <div class="minicard dano" id="cardDano">
+      <div class="mc-lbl">Daño a unidad</div>
+      <div class="mc-val mono">$<span id="mDano">0</span></div>
+      <div class="mc-pct" id="pDano">—</div>
+    </div>
+  </div>
+</section>
+
+<!-- KPIS -->
+<section class="kpis">
+  <div class="kpi k1"><div class="bar"></div><div class="kl">Movimientos</div><div class="kv mono" id="kReg">0</div><div class="kx">Conceptos registrados</div></div>
+  <div class="kpi k2"><div class="bar"></div><div class="kl">Colaboradores</div><div class="kv mono" id="kCol">0</div><div class="kx">Con descuento aplicado</div></div>
+  <div class="kpi k3"><div class="bar"></div><div class="kl">Unidades</div><div class="kv mono" id="kUni">0</div><div class="kx">Con cargo asignado</div></div>
+  <div class="kpi k4"><div class="bar"></div><div class="kl">Ticket promedio</div><div class="kv mono">$<span id="kAvg">0</span></div><div class="kx">Por concepto filtrado</div></div>
+  <div class="kpi k5"><div class="bar"></div><div class="kl">Cobro máximo</div><div class="kv mono">$<span id="kMax">0</span></div><div class="kx" id="kMaxN">—</div></div>
+</section>
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  PANEL DE ADEUDOS ACTIVOS   ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<section class="adeudos-panel" id="adeudosPanel">
+  <div class="adeudos-head" id="adeudosHead">
+    <div class="adeudos-title">
+      <div class="adeudos-icon" id="adeudosIcon">⚠️</div>
+      <span id="adeudosLabel">Adeudos activos pendientes de cobro</span>
+    </div>
+    <div class="adeudos-meta">
+      <span class="a-badge warn" id="adeudosBadge">$2,006.54 pendiente</span>
+      <span class="adeudos-chev" id="adeudosChev">▾</span>
+    </div>
+  </div>
+  <div class="adeudos-body" id="adeudosBody">
+    <div class="adeudos-inner" id="adeudosInner"><!-- JS render --></div>
+  </div>
+</section>
+
+<!-- CHARTS — FILA 1 -->
+<section class="grid">
+  <div class="card fade">
+    <h3><span class="sq" style="background:var(--gold)"></span>Top 10 colaboradores — descuento integrado</h3>
+    <div class="ch-sub">Suma <b>todos los conceptos</b> por colaborador. Independiente del filtro de concepto.</div>
+    <div id="chTop" class="chart tall"></div>
+  </div>
+  <div class="card fade">
+    <h3><span class="sq" style="background:var(--teal)"></span>Distribución por departamento</h3>
+    <div class="ch-sub">Participación en el total filtrado</div>
+    <div id="chDep" class="chart tall"></div>
+    <div class="click-hint">Haz clic en una sección para desglosar</div>
+  </div>
+</section>
+
+<!-- DRILL-DOWN DEPARTAMENTO -->
+<section class="drill" id="drill">
+  <div class="dh">
+    <div class="drill-title" id="drillTitle">Desglose por departamento <span class="drill-hint">— clic en la dona para activar</span></div>
+    <button class="close-btn" id="drillClose" style="display:none">✕ Limpiar</button>
+  </div>
+  <div id="drillBody">
+    <div class="drill-empty">Haz clic en una sección de la dona para ver el desglose de zona, colaborador y monto por tipo de cobro.</div>
+  </div>
+</section>
+
+<!-- CHARTS — FILA 2 -->
+<section class="grid">
+  <div class="card fade">
+    <h3><span class="sq" style="background:var(--blue)"></span>Recaudación por zona</h3>
+    <div class="ch-sub">Uso personal vs. daño por plaza operativa</div>
+    <div id="chZona" class="chart"></div>
+  </div>
+  <div class="card fade">
+    <h3><span class="sq" style="background:var(--violet)"></span>Comparativo entre períodos</h3>
+    <div class="ch-sub">Evolución de recaudación por quincena (MXN)</div>
+    <div id="chPer" class="chart"></div>
+  </div>
+</section>
+
+<!-- DETALLE EXPANDIBLE -->
+<section class="detail" id="detail">
+  <div class="detail-head" id="detailHead">
+    <div class="dtitle"><span class="chev">▾</span>Detalle por colaborador<span class="d-pill" id="dCount">0 registros</span></div>
+    <div class="dtools" onclick="event.stopPropagation()">
+      <input id="srch" type="text" placeholder="Buscar colaborador, unidad…">
+      <select id="fDep"><option value="">Todos los departamentos</option></select>
+      <select id="fCon">
+        <option value="">Concepto (todos)</option>
+        <option value="personal">Uso personal</option>
+        <option value="dano">Daño a unidad</option>
+      </select>
+    </div>
+  </div>
+  <div class="dbody">
+    <div class="twrap">
+      <table class="main-table">
+        <thead><tr>
+          <th data-s="col">Colaborador <span class="arr">↕</span></th>
+          <th data-s="uni">Unidad <span class="arr">↕</span></th>
+          <th data-s="dep">Depto. <span class="arr">↕</span></th>
+          <th data-s="zona">Zona <span class="arr">↕</span></th>
+          <th data-s="con">Concepto <span class="arr">↕</span></th>
+          <th data-s="monto" style="text-align:right">Monto <span class="arr">↕</span></th>
+          <th data-s="adeudo" style="text-align:right">Adeudo <span class="arr">↕</span></th>
+          <th>Observaciones</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+        <tfoot><tr><td colspan="5">TOTAL FILTRADO</td><td class="tm" id="tfoot">$0.00</td><td colspan="2"></td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Tablero Ejecutivo · Descuentos a Flotilla · <b>IES Internacional</b> · Coordinación de Activos Fijos y Control Vehicular<br>
+  Cifras en pesos mexicanos (MXN) · Documento de control interno · Trazabilidad por ID de cobro
+</footer>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  ▸▸ DATOS POR PERÍODO — ACTUALIZAR AQUÍ CADA NUEVA QUINCENA       ║
+// ╠══════════════════════════════════════════════════════════════════════╣
+// ║  Campos obligatorios: p, col, uni, dep, zona, con, monto           ║
+// ║  Campos opcionales:   quincenas (default 1), adeudo (default 0),   ║
+// ║                       obs (observaciones, default "")              ║
+// ║  Valores de "con":    "personal" | "dano"                          ║
+// ║  Valores de "p":      clave del período (ej. "jul", "ago")         ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
+const PERIODOS_META = {
+  abr:  {label:"Abr 03–30, 2026",   short:"Abr 2026"},
+  may:  {label:"May 01–17, 2026",   short:"May 1–17"},
+  jun:  {label:"May18–Jun01, 2026", short:"May18–Jun01"},
+  // ▸▸ AGREGAR NUEVO PERÍODO: {label:"Jul 02–16, 2026", short:"Jul 1Q"}
+};
+
+const DATA = [
+
+// ═══════════════════════════════════════════
+//  PERÍODO 1 — Abril 03–30, 2026
+// ═══════════════════════════════════════════
+{p:"abr",col:"ACOSTA AUGUST UROY ZIGGY",uni:"TORNADO (2)",dep:"ACTIVOS",zona:"CANCUN",con:"personal",monto:371.08},
+{p:"abr",col:"ACOSTA AUGUST UROY ZIGGY",uni:"TORNADO (2)",dep:"ACTIVOS",zona:"CANCUN",con:"personal",monto:347.75},
+{p:"abr",col:"BARRADAS JUAN ALDO FIDEL",uni:"BEAT 4",dep:"OYS",zona:"CANCUN",con:"personal",monto:143.60},
+{p:"abr",col:"BARRADAS JUAN ALDO FIDEL",uni:"BEAT 4",dep:"OYS",zona:"CANCUN",con:"personal",monto:206.68},
+{p:"abr",col:"CESAR RIOS MEMIJE",uni:"S10 CREW 1",dep:"OYS",zona:"CANCUN",con:"dano",monto:1000.00},
+{p:"abr",col:"CHACON CASTILLO ADRIAN ISRAEL",uni:"MARCH 5",dep:"VENTAS",zona:"CANCUN",con:"personal",monto:478.34},
+{p:"abr",col:"CHACON CASTILLO ADRIAN ISRAEL",uni:"MARCH 5",dep:"VENTAS",zona:"CANCUN",con:"personal",monto:232.45},
+{p:"abr",col:"CHAN EDUARDO",uni:"TSURU 2 GSIT/M",dep:"OYS",zona:"CANCUN",con:"personal",monto:134.74},
+{p:"abr",col:"CHI CANUL CELIANO",uni:"AVEO",dep:"OYS",zona:"PLAYA",con:"personal",monto:384.57},
+{p:"abr",col:"CHI PEREZ JOSE DOLORES",uni:"BEAT 9",dep:"OYS",zona:"CANCUN",con:"personal",monto:288.47},
+{p:"abr",col:"CHI PEREZ JOSE DOLORES",uni:"BEAT 9",dep:"OYS",zona:"CANCUN",con:"personal",monto:190.74},
+{p:"abr",col:"DE LA CRUZ CADENA ADRIAN",uni:"VENTO",dep:"OYS",zona:"CABOS",con:"personal",monto:0.00},
+{p:"abr",col:"DOMENECH ALVES JUAN CARLOS",uni:"BEAT 10",dep:"OYS",zona:"PLAYA",con:"personal",monto:601.12},
+{p:"abr",col:"FLORES SOBERANES JOSE",uni:"MARCH 1",dep:"OYS",zona:"CANCUN",con:"personal",monto:191.76},
+{p:"abr",col:"FLORES SOBERANES JOSE",uni:"MARCH 1",dep:"OYS",zona:"CANCUN",con:"personal",monto:277.65},
+{p:"abr",col:"HERNANDEZ ALCUDIA CARLOS ANDRES",uni:"V DRIVE 5",dep:"OYS",zona:"PLAYA",con:"personal",monto:504.80},
+{p:"abr",col:"HERNANDEZ ALCUDIA CARLOS ANDRES",uni:"V DRIVE 5",dep:"OYS",zona:"PLAYA",con:"personal",monto:694.46},
+{p:"abr",col:"HERRERA RAMIREZ JOSE LUIS",uni:"V DRIVE 7",dep:"OYS",zona:"CANCUN",con:"personal",monto:133.68},
+{p:"abr",col:"HERRERA RAMIREZ JOSE LUIS",uni:"V DRIVE 7",dep:"OYS",zona:"CANCUN",con:"personal",monto:382.95},
+{p:"abr",col:"HERRERA RAMIREZ JOSE LUIS",uni:"S10 CREW 1",dep:"OYS",zona:"CANCUN",con:"dano",monto:1000.00},
+{p:"abr",col:"HERRERA RAMIREZ JOSE LUIS",uni:"V DRIVE 4",dep:"OYS",zona:"CANCUN",con:"dano",monto:800.00},
+{p:"abr",col:"HERRERA RAMIREZ JOSE LUIS",uni:"S10 CREW 1",dep:"OYS",zona:"CANCUN",con:"dano",monto:1200.00},
+{p:"abr",col:"JAIRO VAZQUEZ LARA",uni:"BEAT 5",dep:"OYS",zona:"CANCUN",con:"personal",monto:193.26},
+{p:"abr",col:"JIMENEZ PROCOPIO FERNANDO ISAIAS",uni:"BEAT 7",dep:"OYS",zona:"PLAYA",con:"personal",monto:638.25},
+{p:"abr",col:"JIMENEZ PROCOPIO FERNANDO ISAIAS",uni:"BEAT 7",dep:"OYS",zona:"PLAYA",con:"personal",monto:133.09},
+{p:"abr",col:"JORGE IVAN BALCAZAR VELAZQUEZ",uni:"BEAT 6",dep:"OYS",zona:"PLAYA",con:"personal",monto:260.64},
+{p:"abr",col:"JORGE IVAN BALCAZAR VELAZQUEZ",uni:"BEAT 6",dep:"OYS",zona:"PLAYA",con:"personal",monto:379.07},
+{p:"abr",col:"JOSE CONCEPCION REJON KINIL",uni:"SPARK 2",dep:"ACTIVOS",zona:"CANCUN",con:"personal",monto:342.04},
+{p:"abr",col:"JOSE CONCEPCION REJON KINIL",uni:"SPARK 2",dep:"ACTIVOS",zona:"CANCUN",con:"personal",monto:306.05},
+{p:"abr",col:"LOPEZ MOLINA SALVADOR",uni:"DOBLE CABINA 2",dep:"OYS",zona:"CABOS",con:"personal",monto:173.37},
+{p:"abr",col:"LUIS ANGEL MOLINA ANTONIO",uni:"BEAT 2",dep:"OYS",zona:"CANCUN",con:"personal",monto:927.37},
+{p:"abr",col:"LUIS ANGEL MOLINA ANTONIO",uni:"BEAT 2",dep:"OYS",zona:"CANCUN",con:"personal",monto:440.48},
+{p:"abr",col:"MEZA SOSA DARIANA FERNANDA",uni:"STEPWAY",dep:"OYS",zona:"CABOS",con:"personal",monto:473.71},
+{p:"abr",col:"MORENO CASTRO ANDRES RAMIRO",uni:"VERSA 1",dep:"OYS",zona:"CABOS",con:"personal",monto:143.20},
+{p:"abr",col:"MORENO CASTRO ANDRES RAMIRO",uni:"VENTO",dep:"OYS",zona:"CABOS",con:"personal",monto:96.74},
+{p:"abr",col:"RAMOS LOPEZ EBER FRANCISCO",uni:"MIRAGE 1",dep:"OYS",zona:"PLAYA",con:"personal",monto:261.16},
+{p:"abr",col:"RAMOS LOPEZ EBER FRANCISCO",uni:"MIRAGE 1",dep:"OYS",zona:"PLAYA",con:"personal",monto:330.65},
+{p:"abr",col:"ROJAS MARTINEZ JOSE GABRIEL",uni:"MARCH 4",dep:"VENTAS",zona:"CANCUN",con:"personal",monto:381.76},
+{p:"abr",col:"ROJAS MARTINEZ JOSE GABRIEL",uni:"MARCH 4",dep:"VENTAS",zona:"CANCUN",con:"personal",monto:731.28},
+{p:"abr",col:"SANTIAGO USCANGA ARIEL GEOVANNI",uni:"FRONTIER",dep:"PROYECTOS",zona:"CANCUN",con:"personal",monto:309.08},
+{p:"abr",col:"SANTIAGO USCANGA ARIEL GEOVANNI",uni:"FRONTIER",dep:"PROYECTOS",zona:"CANCUN",con:"personal",monto:362.74},
+{p:"abr",col:"XOOL CORTES MARCOS ALEJANDRO",uni:"MARCH 2",dep:"ADMINISTRACION",zona:"CANCUN",con:"personal",monto:439.99},
+{p:"abr",col:"XOOL CORTES MARCOS ALEJANDRO",uni:"MARCH 2",dep:"ADMINISTRACION",zona:"CANCUN",con:"personal",monto:366.39},
+
+// ═══════════════════════════════════════════
+//  PERÍODO 2 — Mayo 01–17, 2026
+// ═══════════════════════════════════════════
+{p:"may",col:"XOOL CORTES MARCOS ALEJANDRO",uni:"SPARK 1",dep:"ACTIVOS",zona:"CANCUN",con:"personal",monto:170.40},
+{p:"may",col:"JAIRO VAZQUEZ LARA",uni:"TORNADO (1)",dep:"ALMACEN",zona:"CANCUN",con:"personal",monto:128.40},
+{p:"may",col:"JOSE CONCEPCION REJON KINIL",uni:"SPARK 2",dep:"ACTIVOS",zona:"CANCUN",con:"personal",monto:134.90},
+{p:"may",col:"ACOSTA AUGUST UROY ZIGGY",uni:"TORNADO (2)",dep:"ACTIVOS",zona:"CANCUN",con:"personal",monto:145.55},
+{p:"may",col:"BARRADAS JUAN ALDO FIDEL",uni:"BEAT 4",dep:"OYS",zona:"CANCUN",con:"personal",monto:60.14},
+{p:"may",col:"LUIS ANGEL MOLINA ANTONIO",uni:"BEAT 2",dep:"OYS",zona:"CANCUN",con:"personal",monto:310.73},
+{p:"may",col:"MAY CANCHE ERICK ERUBEY",uni:"BEAT 5",dep:"OYS",zona:"CANCUN",con:"personal",monto:1175.58},
+{p:"may",col:"JORGE IVAN BALCAZAR VELAZQUEZ",uni:"BEAT 6",dep:"OYS",zona:"PLAYA",con:"personal",monto:264.51},
+{p:"may",col:"CHI CANUL CELIANO",uni:"AVEO",dep:"OYS",zona:"PLAYA",con:"personal",monto:480.40},
+{p:"may",col:"JIMENEZ PROCOPIO FERNANDO ISAIAS",uni:"BEAT 7",dep:"OYS",zona:"PLAYA",con:"personal",monto:128.69},
+{p:"may",col:"CHI PEREZ JOSE DOLORES",uni:"BEAT 9",dep:"OYS",zona:"CANCUN",con:"personal",monto:72.35},
+{p:"may",col:"ANGELO ADRIAN BURGUETE GALLEGOS",uni:"S10 CREW CAB 2",dep:"OYS",zona:"CABOS",con:"personal",monto:108.07},
+{p:"may",col:"RAMOS LOPEZ EBER FRANCISCO",uni:"MIRAGE 1",dep:"OYS",zona:"PLAYA",con:"personal",monto:252.51},
+{p:"may",col:"CHAN EDUARDO",uni:"TSURU 2 GSIT/M",dep:"OYS",zona:"CANCUN",con:"personal",monto:75.18},
+{p:"may",col:"LOPEZ MOLINA SALVADOR",uni:"DOBLE CABINA 2",dep:"OYS",zona:"CABOS",con:"personal",monto:927.53},
+{p:"may",col:"FLORES SOBERANES JOSE",uni:"MARCH 1",dep:"OYS",zona:"CANCUN",con:"personal",monto:61.01},
+{p:"may",col:"HERRERA RAMIREZ JOSE LUIS",uni:"MARCH 2",dep:"ADMINISTRACION",zona:"CANCUN",con:"personal",monto:554.60},
+{p:"may",col:"HERNANDEZ ALCUDIA CARLOS ANDRES",uni:"V DRIVE 5",dep:"OYS",zona:"PLAYA",con:"personal",monto:300.29},
+{p:"may",col:"ROJAS MARTINEZ JOSE GABRIEL",uni:"MARCH 4",dep:"VENTAS",zona:"CANCUN",con:"personal",monto:402.61},
+{p:"may",col:"CHACON CASTILLO ADRIAN ISRAEL",uni:"MARCH 5",dep:"VENTAS",zona:"CANCUN",con:"personal",monto:195.83},
+{p:"may",col:"MEZA SOSA DARIANA FERNANDA",uni:"V DRIVE 9",dep:"OYS",zona:"CABOS",con:"personal",monto:303.28},
+{p:"may",col:"CHI CANUL CELIANO",uni:"AVEO",dep:"OYS",zona:"PLAYA",con:"dano",monto:3500.00},
+{p:"may",col:"CHI CANUL CELIANO",uni:"AVEO",dep:"OYS",zona:"PLAYA",con:"dano",monto:1516.34},
+
+// ═══════════════════════════════════════════
+//  PERÍODO 3 — 18 May – 01 Jun 2026
+// ═══════════════════════════════════════════
+{p:"jun",col:"HERRERA RAMIREZ JOSE LUIS",uni:"SPARK 1",dep:"ACTIVOS",zona:"CANCUN",con:"personal",monto:255.60},
+{p:"jun",col:"LUIS ANGEL MOLINA ANTONIO",uni:"TORNADO (1)",dep:"AUTOMATIZACION",zona:"CANCUN",con:"personal",monto:112.14},
+{p:"jun",col:"LUIS ANGEL MOLINA ANTONIO",uni:"BEAT 2",dep:"AUTOMATIZACION",zona:"CANCUN",con:"personal",monto:207.00},
+{p:"jun",col:"JOSE CONCEPCION REJON KINIL",uni:"SPARK 2",dep:"ACTIVOS",zona:"CANCUN",con:"personal",monto:250.56},
+{p:"jun",col:"ACOSTA AUGUST UROY ZIGGY",uni:"TORNADO (2)",dep:"ACTIVOS",zona:"CANCUN",con:"personal",monto:261.94},
+{p:"jun",col:"ALDO FIDEL BARRADAS JUAN",uni:"BEAT 4",dep:"OYS",zona:"CANCUN",con:"personal",monto:25.49},
+{p:"jun",col:"MAY CANCHE ERICK ERUBEY",uni:"BEAT 5",dep:"OYS",zona:"CANCUN",con:"personal",monto:115.16},
+{p:"jun",col:"JORGE IVAN BALCAZAR VELAZQUEZ",uni:"BEAT 6",dep:"OYS",zona:"PLAYA",con:"personal",monto:173.03},
+{p:"jun",col:"CHI CANUL CELIANO",uni:"AVEO",dep:"OYS",zona:"PLAYA",con:"personal",monto:133.00},
+{p:"jun",col:"CHI CANUL CELIANO",uni:"AVEO",dep:"OYS",zona:"PLAYA",con:"dano",monto:700.00,quincenas:2,adeudo:1400.00,obs:"COBRO POR EXTRAVIO DE LLAVES PARCIALIZADO"},
+{p:"jun",col:"CHI CANUL CELIANO",uni:"AVEO",dep:"OYS",zona:"PLAYA",con:"dano",monto:303.27,quincenas:2,adeudo:606.54,obs:"COBRO POR EXTRAVIO DE LLAVES PARCIALIZADO"},
+{p:"jun",col:"JIMENEZ PROCOPIO FERNANDO ISAIAS",uni:"BEAT 7",dep:"OYS",zona:"PLAYA",con:"personal",monto:262.38},
+{p:"jun",col:"EDDY WILSON RAMIREZ",uni:"BEAT 8",dep:"OBRA",zona:"CANCUN",con:"personal",monto:72.60},
+{p:"jun",col:"CHI PEREZ JOSE DOLORES",uni:"BEAT 9",dep:"OYS",zona:"CANCUN",con:"personal",monto:112.46},
+{p:"jun",col:"RAMOS LOPEZ EBER FRANCISCO",uni:"MIRAGE 1",dep:"OYS",zona:"PLAYA",con:"personal",monto:274.90},
+{p:"jun",col:"CHAN EDUARDO",uni:"TSURU 2 GSIT/M",dep:"OYS",zona:"CANCUN",con:"personal",monto:33.62},
+{p:"jun",col:"MORENO CASTRO ANDRES RAMIRO",uni:"VERSA 1",dep:"OYS",zona:"CABOS",con:"personal",monto:156.35},
+{p:"jun",col:"SALVADOR LOPEZ MOLINA",uni:"DOBLE CABINA 2",dep:"OYS",zona:"CABOS",con:"personal",monto:238.43},
+{p:"jun",col:"FLORES SOBERANES JOSE",uni:"MARCH 1",dep:"OYS",zona:"CANCUN",con:"personal",monto:33.55},
+{p:"jun",col:"JAIRO VAZQUEZ",uni:"MARCH 1",dep:"OYS",zona:"CANCUN",con:"personal",monto:158.25},
+{p:"jun",col:"MARCOS ALEJANDRO XOOL CORTES",uni:"MARCH 2",dep:"ADMINISTRACION",zona:"CANCUN",con:"personal",monto:284.70},
+{p:"jun",col:"HERNANDEZ ALCUDIA CARLOS ANDRES",uni:"V DRIVE 5",dep:"OYS",zona:"PLAYA",con:"personal",monto:235.80},
+{p:"jun",col:"ROJAS MARTINEZ JOSE GABRIEL",uni:"MARCH 4",dep:"VENTAS",zona:"CANCUN",con:"personal",monto:128.03},
+{p:"jun",col:"CHACON CASTILLO ADRIAN ISRAEL",uni:"MARCH 5",dep:"VENTAS",zona:"CANCUN",con:"personal",monto:295.21},
+{p:"jun",col:"JUAN CARLOS CASTILLO CUSTODIO",uni:"V DRIVE 7",dep:"OYS",zona:"CANCUN",con:"personal",monto:101.29},
+{p:"jun",col:"DARIANA FERNANDA MEZA SOSA",uni:"YARIS",dep:"TDA",zona:"CABOS",con:"personal",monto:89.19},
+
+// ▸▸ AGREGAR NUEVO PERÍODO AQUÍ
+// ═══════════════════════════════════════════
+//  PERÍODO 4 — [FECHA], 2026   ← copiar bloque
+// ═══════════════════════════════════════════
+// {p:"jul", col:"...", uni:"...", dep:"...", zona:"...", con:"personal", monto:0.00},
+
+];
+
+// ── Normalizar campos opcionales ──
+DATA.forEach(d=>{ d.quincenas=d.quincenas||1; d.adeudo=d.adeudo||0; d.obs=d.obs||""; });
+
+// ── Estado global ──
+let period="jun", concept="todos", sortKey="monto", sortDir=-1, selDep=null;
+
+// ── Helpers ──
+const fmt=n=>n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt0=n=>n.toLocaleString('es-MX');
+const sum=(arr,f=d=>d.monto)=>arr.reduce((a,d)=>a+f(d),0);
+const byP=()=>period==="todos"?DATA:DATA.filter(d=>d.p===period);
+const baseSet=()=>{ const s=byP(); return concept==="todos"?s:s.filter(d=>d.con===concept); };
+const COLORS=['#f5b942','#3fc1b0','#5b9cf0','#9b8cff','#ef6b6b','#e88c4d','#6fd08c','#d96fb0','#f472b6','#a78bfa'];
+const AC='#26395a', TC='#8aa0c2';
+const CON_LABEL={todos:"Recaudación total de descuentos",personal:"Recaudación por uso personal",dano:"Recaudación por daño a unidad"};
+
+// ── Charts ──
+const elTop=echarts.init(document.getElementById('chTop'));
+const elDep=echarts.init(document.getElementById('chDep'));
+const elZona=echarts.init(document.getElementById('chZona'));
+const elPer=echarts.init(document.getElementById('chPer'));
+
+function renderCharts(){
+  const perSet=byP();
+
+  // TOP 10 integrado (siempre todos los conceptos, solo filtro período)
+  const mp={};
+  perSet.forEach(d=>{if(!mp[d.col])mp[d.col]={p:0,d:0};if(d.con==="personal")mp[d.col].p+=d.monto;else mp[d.col].d+=d.monto;});
+  const arr=Object.entries(mp).map(([c,v])=>({col:c,p:v.p,d:v.d,t:v.p+v.d})).filter(o=>o.t>0).sort((a,b)=>a.t-b.t).slice(-10);
+  const cats=arr.map(o=>o.col.length>22?o.col.slice(0,22)+'…':o.col);
+  const totArr=arr.map(o=>o.t);
+  elTop.setOption({
+    grid:{left:8,right:64,top:30,bottom:8,containLabel:true},
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:ps=>{const i=ps[0].dataIndex;let s=arr[i].col+'<br/>';ps.forEach(x=>{s+=x.marker+x.seriesName+': $'+fmt(x.value)+'<br/>'});return s+'<b>Total: $'+fmt(totArr[i])+'</b>';}},
+    legend:{top:0,textStyle:{color:TC},data:['Uso personal','Daño a unidad']},
+    xAxis:{type:'value',axisLabel:{color:TC,formatter:v=>'$'+fmt0(v)},splitLine:{lineStyle:{color:AC}}},
+    yAxis:{type:'category',data:cats,axisLabel:{color:'#cfdcf0',fontSize:11},axisLine:{lineStyle:{color:AC}}},
+    series:[
+      {name:'Uso personal',type:'bar',stack:'t',data:arr.map(o=>+o.p.toFixed(2)),barWidth:'60%',
+       itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#2a8c80'},{offset:1,color:'#3fc1b0'}]),borderRadius:[6,0,0,6]}},
+      {name:'Daño a unidad',type:'bar',stack:'t',data:arr.map(o=>+o.d.toFixed(2)),
+       itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#cf4a4a'},{offset:1,color:'#ef6b6b'}]),borderRadius:[0,6,6,0]},
+       label:{show:true,position:'right',color:'#f5d98a',fontFamily:'IBM Plex Mono',fontWeight:700,fontSize:11,formatter:p=>'$'+fmt0(Math.round(totArr[p.dataIndex]))}}
+    ]
+  },true);
+
+  // DONA departamento (respeta filtro concepto)
+  const set=baseSet();
+  const byDep={};
+  set.forEach(d=>byDep[d.dep]=(byDep[d.dep]||0)+d.monto);
+  const depData=Object.entries(byDep).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]).map(([n,v],i)=>({name:n,value:+v.toFixed(2),itemStyle:{color:COLORS[i%COLORS.length]}}));
+  elDep.setOption({
+    tooltip:{trigger:'item',formatter:p=>p.name+'<br/>$'+fmt(p.value)+' · '+p.percent+'%<br/><span style="color:var(--gold-dim)">▸ clic para desglosar</span>'},
+    legend:{bottom:0,textStyle:{color:TC,fontSize:11},itemWidth:11,itemHeight:11},
+    series:[{type:'pie',radius:['46%','72%'],center:['50%','43%'],avoidLabelOverlap:true,
+      itemStyle:{borderColor:'#16243c',borderWidth:3},
+      emphasis:{scaleSize:7,itemStyle:{shadowBlur:12,shadowColor:'rgba(0,0,0,.5)'}},
+      label:{show:true,color:'#cfdcf0',fontSize:11,formatter:p=>p.percent+'%'},data:depData}]
+  },true);
+
+  // ZONA stacked (siempre ambos para contexto, pero resalta el filtrado)
+  const zonas=[...new Set(perSet.map(d=>d.zona))].sort();
+  elZona.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},valueFormatter:v=>'$'+fmt(v)},
+    legend:{top:0,textStyle:{color:TC},data:['Uso personal','Daño']},
+    grid:{left:8,right:16,top:36,bottom:8,containLabel:true},
+    xAxis:{type:'category',data:zonas,axisLabel:{color:'#cfdcf0'},axisLine:{lineStyle:{color:AC}}},
+    yAxis:{type:'value',axisLabel:{color:TC,formatter:v=>'$'+fmt0(v)},splitLine:{lineStyle:{color:AC}}},
+    series:[
+      {name:'Uso personal',type:'bar',stack:'t',barWidth:'46%',
+       data:zonas.map(z=>+sum(perSet.filter(d=>d.zona===z&&d.con==="personal")).toFixed(2)),
+       itemStyle:{color:'#3fc1b0',opacity:concept==="dano"?.3:1}},
+      {name:'Daño',type:'bar',stack:'t',
+       data:zonas.map(z=>+sum(perSet.filter(d=>d.zona===z&&d.con==="dano")).toFixed(2)),
+       itemStyle:{color:'#ef6b6b',borderRadius:[5,5,0,0],opacity:concept==="personal"?.3:1}}
+    ]
+  },true);
+
+  // COMPARATIVO PERÍODOS — todos los períodos en orden cronológico
+  const keys=['abr','may','jun'];
+  const labels=keys.map(k=>(PERIODOS_META[k]||{short:k}).short);
+  const totP=keys.map(k=>+sum(DATA.filter(d=>d.p===k&&d.con==="personal")).toFixed(2));
+  const totD=keys.map(k=>+sum(DATA.filter(d=>d.p===k&&d.con==="dano")).toFixed(2));
+  const totA=keys.map(k=>+sum(DATA.filter(d=>d.p===k&&d.adeudo>0),d=>d.adeudo).toFixed(2));
+  const ser=[];
+  if(concept!=="dano")ser.push({name:'Uso personal',type:'line',smooth:true,data:totP,symbolSize:9,lineStyle:{width:3,color:'#f5b942'},itemStyle:{color:'#f5b942'},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(245,185,66,.28)'},{offset:1,color:'rgba(245,185,66,0)'}])},label:{show:true,color:'#f5b942',fontFamily:'IBM Plex Mono',fontSize:10,formatter:p=>'$'+fmt0(Math.round(p.value))}});
+  if(concept!=="personal")ser.push({name:'Daño',type:'line',smooth:true,data:totD,symbolSize:9,lineStyle:{width:3,color:'#ef6b6b'},itemStyle:{color:'#ef6b6b'},label:{show:true,color:'#ef6b6b',fontFamily:'IBM Plex Mono',fontSize:10,formatter:p=>'$'+fmt0(Math.round(p.value))}});
+  ser.push({name:'Adeudo',type:'bar',barWidth:'28%',data:totA,itemStyle:{color:'rgba(245,158,11,.55)',borderRadius:[5,5,0,0],borderColor:'#f59e0b',borderWidth:1},label:{show:true,position:'top',color:'#f59e0b',fontFamily:'IBM Plex Mono',fontSize:10,formatter:p=>p.value>0?'$'+fmt0(Math.round(p.value)):''}});
+  elPer.setOption({
+    tooltip:{trigger:'axis',valueFormatter:v=>'$'+fmt(v)},legend:{top:0,textStyle:{color:TC}},
+    grid:{left:8,right:16,top:36,bottom:8,containLabel:true},
+    xAxis:{type:'category',data:labels,axisLabel:{color:'#cfdcf0'},axisLine:{lineStyle:{color:AC}}},
+    yAxis:{type:'value',axisLabel:{color:TC,formatter:v=>'$'+fmt0(v)},splitLine:{lineStyle:{color:AC}}},
+    series:ser
+  },true);
+}
+
+// ── KPIS ──
+function renderKpis(){
+  const s=byP();
+  const tP=sum(s.filter(d=>d.con==="personal")), tD=sum(s.filter(d=>d.con==="dano")), grand=tP+tD;
+  const set=baseSet();
+  const hero=concept==="todos"?grand:concept==="personal"?tP:tD;
+  animate('heroVal',hero);
+  document.getElementById('heroTag').textContent=CON_LABEL[concept];
+  document.getElementById('mPer').textContent=fmt(tP);
+  document.getElementById('mDano').textContent=fmt(tD);
+  document.getElementById('pPer').textContent=grand?((tP/grand*100).toFixed(1)+'% del total'):'—';
+  document.getElementById('pDano').textContent=grand?((tD/grand*100).toFixed(1)+'% del total'):'—';
+  document.getElementById('cardPer').classList.toggle('active',concept==="personal");
+  document.getElementById('cardDano').classList.toggle('active',concept==="dano");
+  const meta=PERIODOS_META[period];
+  const perLabel=meta?meta.label:"el período consolidado";
+  const cap=concept==="todos"?`Total de <b>descuentos recaudados</b> en ${perLabel}, sumando uso personal y daños.`
+    :concept==="personal"?`Combustible y desgaste por <b>uso personal</b> en ${perLabel}.`
+    :`Recuperaciones por <b>daño a unidad</b> en ${perLabel}.`;
+  document.getElementById('heroCap').innerHTML=cap;
+  document.getElementById('kReg').textContent=fmt0(set.length);
+  document.getElementById('kCol').textContent=fmt0(new Set(set.map(d=>d.col)).size);
+  document.getElementById('kUni').textContent=fmt0(new Set(set.map(d=>d.uni)).size);
+  document.getElementById('kAvg').textContent=fmt(set.length?sum(set)/set.length:0);
+  const mx=set.reduce((a,d)=>d.monto>a.monto?d:a,{monto:0,col:'—'});
+  document.getElementById('kMax').textContent=fmt(mx.monto);
+  document.getElementById('kMaxN').textContent=mx.col;
+  // last period label
+  const lastKeys=Object.keys(PERIODOS_META);
+  document.getElementById('lastPer').textContent=(PERIODOS_META[lastKeys[lastKeys.length-1]]||{short:'—'}).short;
+}
+
+// ── ADEUDOS PANEL ──
+function renderAdeudos(){
+  const rows=byP().filter(d=>d.adeudo>0);
+  const panel=document.getElementById('adeudosPanel');
+  const icon=document.getElementById('adeudosIcon');
+  const label=document.getElementById('adeudosLabel');
+  const badge=document.getElementById('adeudosBadge');
+  if(!rows.length){
+    panel.classList.add('clear');
+    icon.textContent='✅';
+    label.textContent='Sin adeudos activos en este período';
+    badge.className='a-badge ok'; badge.textContent='Sin pendientes';
+    document.getElementById('adeudosInner').innerHTML='<div class="no-adeudo">✅ Sin adeudos activos registrados en el período seleccionado.</div>';
+    return;
+  }
+  panel.classList.remove('clear');
+  icon.textContent='⚠️'; label.textContent='Adeudos activos pendientes de cobro';
+  const totAdeudo=sum(rows,d=>d.adeudo);
+  badge.className='a-badge warn'; badge.textContent='$'+fmt(totAdeudo)+' pendiente';
+  // Agrupar por colaborador+ID
+  const map={};
+  rows.forEach(d=>{const k=d.col+'|'+d.obs;if(!map[k])map[k]={col:d.col,zona:d.zona,dep:d.dep,uni:d.uni,adeudo:0,monto:0,quincenas:d.quincenas,obs:d.obs};map[k].adeudo+=d.adeudo;map[k].monto+=d.monto;});
+  const list=Object.values(map).sort((a,b)=>b.adeudo-a.adeudo);
+  const totMonto=sum(rows,d=>d.monto);
+  let html=`<div class="adeudos-stats">
+    <div class="a-stat a"><div class="l">Total adeudo</div><div class="v">$${fmt(totAdeudo)}</div></div>
+    <div class="a-stat p"><div class="l">Cobro período</div><div class="v">$${fmt(totMonto)}</div></div>
+    <div class="a-stat c"><div class="l">Total a recuperar</div><div class="v">$${fmt(totAdeudo+totMonto)}</div></div>
+  </div>
+  <div class="atab-wrap"><table><thead><tr>
+    <th>Colaborador</th><th>Unidad</th><th>Zona</th><th>Depto.</th>
+    <th style="text-align:right">Cobro actual</th><th style="text-align:right">Adeudo restante</th>
+    <th>Cuotas pend.</th><th>Observaciones</th>
+  </tr></thead><tbody>`;
+  list.forEach(o=>{
+    const cuotas=Math.round(o.adeudo/o.monto*o.quincenas)||'—';
+    html+=`<tr>
+      <td class="a-col">${o.col}</td>
+      <td><span class="zbadge">${o.uni}</span></td>
+      <td><span class="zbadge">${o.zona}</span></td>
+      <td class="a-muted">${o.dep}</td>
+      <td class="a-num cell-d">$${fmt(o.monto)}</td>
+      <td class="a-num" style="color:var(--amber);font-weight:700">$${fmt(o.adeudo)}</td>
+      <td style="text-align:center"><span class="inst-pill">${o.quincenas}Q</span></td>
+      <td class="obs-txt">${o.obs||'—'}</td>
+    </tr>`;
+  });
+  html+=`</tbody><tfoot><tr>
+    <td colspan="4">TOTAL</td>
+    <td class="a-num">$${fmt(totMonto)}</td>
+    <td class="a-num" style="color:var(--amber)">$${fmt(totAdeudo)}</td>
+    <td colspan="2"></td>
+  </tr></tfoot></table></div>`;
+  document.getElementById('adeudosInner').innerHTML=html;
+}
+
+function animate(id,target){const el=document.getElementById(id);let s=0,i=0;const inc=target/34;clearInterval(el._t);el._t=setInterval(()=>{i++;s+=inc;if(i>=34){s=target;clearInterval(el._t)}el.textContent=fmt(s)},14);}
+
+// ── DRILL DOWN DONA ──
+function renderDrill(dep){
+  const rows=byP().filter(d=>d.dep===dep);
+  if(!rows.length){clearDrill();return;}
+  selDep=dep;
+  const panel=document.getElementById('drill');
+  panel.classList.add('armed','flash');
+  setTimeout(()=>panel.classList.remove('flash'),700);
+  document.getElementById('drillClose').style.display='inline-block';
+  document.getElementById('drillTitle').innerHTML=`Desglose · <span class="drill-chip">${dep}</span> <span class="drill-hint">· ${(PERIODOS_META[period]||{label:'consolidado'}).label}</span>`;
+  const map={};
+  rows.forEach(d=>{const k=d.col+'|'+d.zona;if(!map[k])map[k]={col:d.col,zona:d.zona,p:0,d:0};if(d.con==="personal")map[k].p+=d.monto;else map[k].d+=d.monto;});
+  const list=Object.values(map).map(o=>({...o,t:o.p+o.d})).sort((a,b)=>b.t-a.t);
+  const tP=list.reduce((a,o)=>a+o.p,0),tD=list.reduce((a,o)=>a+o.d,0),tot=tP+tD;
+  let html=`<div class="drill-stats">
+    <div class="dstat t"><div class="l">Total integrado</div><div class="v">$${fmt(tot)}</div></div>
+    <div class="dstat p"><div class="l">Uso personal</div><div class="v">$${fmt(tP)}</div></div>
+    <div class="dstat d"><div class="l">Daño</div><div class="v">$${fmt(tD)}</div></div>
+    <div class="dstat c"><div class="l">Colaboradores</div><div class="v">${list.length}</div></div>
+  </div>
+  <div class="dtab-wrap"><table class="dtable"><thead><tr>
+    <th>Zona</th><th>Departamento</th><th>Colaborador</th>
+    <th class="r">Uso personal</th><th class="r">Daño</th><th class="r">Total</th>
+  </tr></thead><tbody>`;
+  list.forEach(o=>{
+    html+=`<tr>
+      <td><span class="zbadge">${o.zona}</span></td><td class="d-muted">${dep}</td>
+      <td class="d-col">${o.col}</td>
+      <td class="d-num ${o.p>0?'cell-p':'d-muted'}">${o.p>0?'$'+fmt(o.p):'—'}</td>
+      <td class="d-num ${o.d>0?'cell-d':'d-muted'}">${o.d>0?'$'+fmt(o.d):'—'}</td>
+      <td class="d-num d-tot">$${fmt(o.t)}</td>
+    </tr>`;
+  });
+  html+=`</tbody><tfoot><tr><td colspan="3">TOTAL ${dep}</td><td class="d-num">$${fmt(tP)}</td><td class="d-num">$${fmt(tD)}</td><td class="d-num">$${fmt(tot)}</td></tr></tfoot></table></div>`;
+  document.getElementById('drillBody').innerHTML=html;
+}
+function clearDrill(){
+  selDep=null;
+  document.getElementById('drill').classList.remove('armed');
+  document.getElementById('drillClose').style.display='none';
+  document.getElementById('drillTitle').innerHTML='Desglose por departamento <span class="drill-hint">— clic en la dona para activar</span>';
+  document.getElementById('drillBody').innerHTML='<div class="drill-empty">Haz clic en una sección de la dona para ver el desglose de zona, colaborador y monto por tipo de cobro.</div>';
+}
+elDep.on('click',p=>{if(p.componentType!=='series')return;renderDrill(p.name);document.getElementById('drill').scrollIntoView({behavior:'smooth',block:'center'});});
+document.getElementById('drillClose').addEventListener('click',clearDrill);
+
+// ── ADEUDOS toggle ──
+document.getElementById('adeudosHead').addEventListener('click',()=>{
+  document.getElementById('adeudosPanel').classList.toggle('open');
+  document.getElementById('adeudosChev').style.transform=document.getElementById('adeudosPanel').classList.contains('open')?'rotate(180deg)':'';
+});
+
+// ── DETAIL TABLE ──
+function fillFilters(){
+  const sel=document.getElementById('fDep');
+  sel.innerHTML='<option value="">Todos los departamentos</option>';
+  [...new Set(DATA.map(d=>d.dep))].sort().forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});
+}
+function renderTable(){
+  const q=document.getElementById('srch').value.trim().toUpperCase();
+  const fd=document.getElementById('fDep').value, fc=document.getElementById('fCon').value;
+  let rows=byP().filter(d=>(!q||d.col.includes(q)||d.uni.includes(q))&&(!fd||d.dep===fd)&&(!fc||d.con===fc));
+  rows=rows.slice().sort((a,b)=>{let x=a[sortKey],y=b[sortKey];return typeof x==="string"?sortDir*x.localeCompare(y):sortDir*(x-y);});
+  const tb=document.getElementById('tbody');tb.innerHTML='';
+  if(!rows.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin registros.</td></tr>';return;}
+  rows.forEach(d=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="tc">${d.col}</td>
+      <td><span class="uni-badge">${d.uni}</span></td>
+      <td>${d.dep}</td><td>${d.zona}</td>
+      <td><span class="tag-c ${d.con}">${d.con==='personal'?'Uso personal':'Daño'}</span></td>
+      <td class="tm">$${fmt(d.monto)}</td>
+      <td class="tm">${d.adeudo>0?'<span style="color:var(--amber);font-weight:700">$'+fmt(d.adeudo)+'</span>':'<span class="a-muted">—</span>'}</td>
+      <td class="obs-cell">${d.obs||'—'}</td>`;
+    tb.appendChild(tr);
+  });
+  document.getElementById('tfoot').textContent='$'+fmt(sum(rows));
+  document.getElementById('dCount').textContent=rows.length+' registro'+(rows.length!==1?'s':'');
+}
+document.getElementById('detailHead').addEventListener('click',()=>{
+  document.getElementById('detail').classList.toggle('open');
+  setTimeout(()=>{elTop.resize();elDep.resize();elZona.resize();elPer.resize();},420);
+});
+['srch','fDep','fCon'].forEach(id=>document.getElementById(id).addEventListener('input',renderTable));
+document.querySelectorAll('.main-table thead th').forEach(th=>th.addEventListener('click',()=>{const k=th.dataset.s;if(!k)return;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(k==='monto'||k==='adeudo')?-1:1;}renderTable();}));
+
+// ── FILTROS GLOBALES ──
+document.getElementById('segPer').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('#segPer button').forEach(x=>x.classList.remove('on'));b.classList.add('on');period=b.dataset.p;refresh();});
+document.getElementById('segCon').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('#segCon button').forEach(x=>x.classList.remove('on'));b.classList.add('on');concept=b.dataset.c;document.getElementById('fCon').value=concept==="todos"?"":concept;refresh();});
+window.addEventListener('resize',()=>{elTop.resize();elDep.resize();elZona.resize();elPer.resize();});
+
+// ── REFRESH ──
+function refresh(){
+  renderKpis();renderCharts();renderAdeudos();renderTable();
+  if(selDep){const ok=byP().some(d=>d.dep===selDep);ok?renderDrill(selDep):clearDrill();}
+}
+
+fillFilters();
+// Auto-abrir adeudos si hay pendientes
+const initAdeudos=byP().filter(d=>d.adeudo>0);
+if(initAdeudos.length)document.getElementById('adeudosPanel').classList.add('open');
+refresh();
+</script>
+</body>
+</html>
